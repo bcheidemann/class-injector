@@ -1,0 +1,16 @@
+{
+  "include": "**/*.md",
+  "exclude": [
+    "**/node_modules/**"
+  ],
+  "tsProjectOptions": {
+    "compilerOptions": {
+      "paths": {
+        "class-injector": [
+          "./src/index.ts"
+        ]
+      }
+    }
+  },
+  "root": "./"
+}

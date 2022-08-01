@@ -1,0 +1,42 @@
+{
+  "name": "class-injector",
+  "version": "1.0.1",
+  "description": "Crazy simple dependency injection for TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "check:docs": "doc-check",
+    "test": "jest && doc-check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bcheidemann/class-injector.git"
+  },
+  "keywords": [
+    "TypeScript",
+    "DI",
+    "Dependency",
+    "Injection"
+  ],
+  "author": "Ben Heidemann",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bcheidemann/class-injector/issues"
+  },
+  "homepage": "https://github.com/bcheidemann/class-injector#readme",
+  "devDependencies": {
+    "@types/jest": "^28.1.6",
+    "jest": "^28.1.3",
+    "rimraf": "^3.0.2",
+    "ts-doc-check": "^1.3.0",
+    "ts-jest": "^28.0.7",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
+  "files": [
+    "dist"
+  ]
+}
