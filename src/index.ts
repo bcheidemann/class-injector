@@ -13,8 +13,6 @@ type Context = Omit<Map<Constructor, Instance>, "get"> & {
   get<T>(key: new (...params: any[]) => T): T | undefined;
 }
 
-let i = 0;
-
 export function createContext(options: ContextOptions): Context {
   // Create a new context
   const context = new Map<Constructor, Instance>();
@@ -41,11 +39,7 @@ export function createContext(options: ContextOptions): Context {
     Object.defineProperty(instance, ContextSymbol, {
       value: context,
     });
-
-    instance['i'] = i;
   }
-
-  i++;
 
   return context;
 }

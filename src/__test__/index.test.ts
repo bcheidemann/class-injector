@@ -57,7 +57,7 @@ describe('index', () => {
     @Context({
       provide: [
         [Dependency, mock],
-      ]
+      ],
     })
     class Application {
       @Inject()
@@ -87,7 +87,7 @@ describe('index', () => {
     @Context({
       provide: [
         new Dependency(fn),
-      ]
+      ],
     })
     class Application {
       @Inject()
@@ -138,6 +138,54 @@ describe('index', () => {
     }
 
     expect(() => new Application()).toThrowErrorMatchingSnapshot();
+  });
+
+  it('Should allow multiple contexts to for different classes', () => {
+    abstract class Dependency {
+      public abstract fn(context: 'one' | 'two'): void;
+    }
+
+    class DependencyOne extends Dependency {
+      static fn = jest.fn();
+      public fn = DependencyOne.fn;
+    }
+
+    class DependencyTwo extends Dependency {
+      static fn = jest.fn();
+      public fn = DependencyTwo.fn;
+    }
+
+    @Context({
+      provide: [
+        [Dependency, new DependencyOne()],
+      ],
+    })
+    class ApplicationOne {
+      @Inject()
+      public dependency!: Dependency;
+    }
+
+    @Context({
+      provide: [
+        [Dependency, new DependencyTwo()],
+      ],
+    })
+    class ApplicationTwo {
+      @Inject()
+      public dependency!: Dependency;
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    appOne!.dependency.fn('one');
+    appTwo!.dependency.fn('two');
+
+    expect(DependencyOne.fn).toHaveBeenCalledTimes(1);
+    expect(DependencyOne.fn).toHaveBeenCalledWith('one');
+
+    expect(DependencyTwo.fn).toHaveBeenCalledTimes(1);
+    expect(DependencyTwo.fn).toHaveBeenCalledWith('two');
   });
 
   it('Dependencies should be automatically injected when calling createContext', () => {
