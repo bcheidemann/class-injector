@@ -71,6 +71,34 @@ describe('index', () => {
     expect(mock.fn).toHaveBeenCalled();
   });
 
+  it('Provided classes should share the same context', () => {
+    class Common {}
+
+    class Dependency {
+      @Inject()
+      public common!: Common;
+    }
+
+    @Context({
+      provide: [
+        new Dependency(),
+      ],
+    })
+    class Application {
+      @Inject()
+      public dependency!: Dependency;
+
+      @Inject()
+      public common!: Common;
+    }
+
+    const app = new Application();
+
+    expect(app.common).toBeInstanceOf(Common);
+    expect(app.dependency.common).toBeInstanceOf(Common);
+    expect(app.common).toBe(app.dependency.common);
+  });
+
   it('Should provide an instance', () => {
     const fn = jest.fn();
 
