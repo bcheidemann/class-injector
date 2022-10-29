@@ -1,4 +1,4 @@
-import { Context, createContext, Inject } from '..';
+import { Context, createContext, Inject, Provide } from '..';
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
@@ -69,6 +69,83 @@ describe('index', () => {
     app.dependency.fn();
 
     expect(mock.fn).toHaveBeenCalled();
+  });
+
+  it('Should provide an instance by symbol type using the context provide option', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    class Dependency {
+      public key = 'value';
+    }
+
+    @Context({
+      provide: [
+        [Dependencies.Dependency, new Dependency()],
+      ],
+    })
+    class Application {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string };
+    }
+
+    const app = new Application();
+
+    expect(app.dependency.key).toBe('value');
+  });
+
+  it('Should provide an instance by symbol type using the Provide decorator', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    @Provide(Dependencies.Dependency)
+    class Dependency {
+      public key = 'value';
+    }
+
+    @Context()
+    class Application {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string };
+    }
+
+    const app = new Application();
+
+    expect(app.dependency.key).toBe('value');
+  });
+
+
+  it('Should create a unique instance for each context when using the Provide decorator', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    @Provide(Dependencies.Dependency)
+    class Dependency {
+      public key = 'value';
+    }
+
+    @Context()
+    class ApplicationOne {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string };
+    }
+
+    @Context()
+    class ApplicationTwo {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string };
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    expect(appOne.dependency).toBeInstanceOf(Dependency);
+    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+
+    expect(appOne.dependency).not.toBe(appTwo.dependency);
   });
 
   it('Provided classes should share the same context', () => {
