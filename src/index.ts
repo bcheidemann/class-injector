@@ -10,9 +10,7 @@ type ContextOptions = {
   provide?: ([Type, Instance] | Instance)[],
 }
 
-type Context = Omit<Map<Type, Instance>, "get"> & {
-  get<T>(key: new (...params: any[]) => T): T | undefined;
-}
+export type Context = Map<Type, Instance>;
 
 const SymbolRegistry = new Map<Symbol, Type>();
 
@@ -39,9 +37,11 @@ export function createContext(options: ContextOptions): Context {
     context.set(type, instance);
 
     // Add the context to the instance
-    Object.defineProperty(instance, ContextSymbol, {
-      value: context,
-    });
+    if (typeof instance === 'object') {
+      Object.defineProperty(instance, ContextSymbol, {
+        value: context,
+      });
+    }
   }
 
   return context;
@@ -66,6 +66,11 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
       const context = this[ContextSymbol];
       if (!context) {
         throw new Error('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+      }
+
+      // Return the context if the @Inject(Context) pattern is used
+      if (_type === Context) {
+        return context;
       }
 
       // Try to get the instance from the context

@@ -364,4 +364,38 @@ describe('index', () => {
     expect(DependencyTwo.fn).toHaveBeenCalledTimes(1);
     expect(DependencyTwo.fn).toHaveBeenCalledWith('two');
   });
+
+  it('Should allow providing arbitrary instance types', () => {
+    @Context({
+      provide: [
+        ['key', 'value']
+      ]
+    })
+    class Application {
+      @Inject('key')
+      key!: string;
+    }
+
+    const app = new Application();
+
+    expect(app.key).toBe('value');
+  });
+
+  it('Should allow context injection', () => {
+    @Context({
+      provide: [
+        ['key', 'value']
+      ]
+    })
+    class Application {
+      @Inject(Context)
+      context!: Context;
+    }
+
+    const app = new Application();
+
+    const key = app.context.get('key');
+
+    expect(key).toBe('value');
+  });
 });
