@@ -398,4 +398,35 @@ describe('index', () => {
 
     expect(key).toBe('value');
   });
+
+
+  it('Should bind the context to a manually instantiated instance', () => {
+    class Dependency {
+      public key = 'value';
+    }
+
+    class RuntimeDependency {
+      @Inject() dependency!: Dependency;
+    }
+
+    @Context()
+    class Application {
+      @Inject(Context)
+      context!: Context;
+
+      public getRuntimeDependency() {
+        const runtimeDependency = new RuntimeDependency();
+
+        this.context.bind(runtimeDependency);
+
+        return runtimeDependency;
+      }
+    }
+
+    const app = new Application();
+
+    const runtimeDependency = app.getRuntimeDependency();
+
+    expect(runtimeDependency.dependency.key).toBe('value');
+  });
 });

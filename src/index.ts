@@ -10,13 +10,23 @@ type ContextOptions = {
   provide?: ([Type, Instance] | Instance)[],
 }
 
-export type Context = Map<Type, Instance>;
+export type Context = Map<Type, Instance> & {
+  bind: (instance: Instance) => void,
+};
+
+class ContextImpl extends Map<Type, Instance> implements Context {
+  public bind(instance: Instance) {
+    Object.defineProperty(instance, ContextSymbol, {
+      value: this,
+    });
+  }
+}
 
 const SymbolRegistry = new Map<Symbol, Type>();
 
 export function createContext(options: ContextOptions): Context {
   // Create a new context
-  const context = new Map<Type, Instance>();
+  const context = new ContextImpl();
 
   // Provide the context to the constructor
   const provide = options.provide || [];
