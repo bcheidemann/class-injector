@@ -11,7 +11,8 @@ type ContextOptions = {
 }
 
 export type Context = Map<Type, Instance> & {
-  bind: (instance: Instance) => void,
+  bind: (instance: Instance) => void;
+  instantiate: (type: Type) => Instance;
 };
 
 class ContextImpl extends Map<Type, Instance> implements Context {
@@ -19,6 +20,22 @@ class ContextImpl extends Map<Type, Instance> implements Context {
     Object.defineProperty(instance, ContextSymbol, {
       value: this,
     });
+  }
+
+  public instantiate(type: Type) {
+    let instance = this.get(type);
+
+    if (!instance) {
+      instance = new type();
+
+      Object.defineProperty(instance, ContextSymbol, {
+        value: this,
+      });
+
+      this.set(type, instance);
+    }
+
+    return instance;
   }
 }
 

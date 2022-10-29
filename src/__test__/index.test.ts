@@ -399,7 +399,6 @@ describe('index', () => {
     expect(key).toBe('value');
   });
 
-
   it('Should bind the context to a manually instantiated instance', () => {
     class Dependency {
       public key = 'value';
@@ -428,5 +427,54 @@ describe('index', () => {
     const runtimeDependency = app.getRuntimeDependency();
 
     expect(runtimeDependency.dependency.key).toBe('value');
+  });
+
+  it('Should instantiate a type at runtime', () => {
+    class Dependency {
+      public key = 'value';
+    }
+
+    class RuntimeDependency {
+      @Inject() dependency!: Dependency;
+    }
+
+    @Context()
+    class Application {
+      @Inject(Context)
+      context!: Context;
+
+      public getRuntimeDependency() {
+        return this.context.instantiate(RuntimeDependency);
+      }
+    }
+
+    const app = new Application();
+
+    const runtimeDependency = app.getRuntimeDependency();
+
+    expect(runtimeDependency.dependency.key).toBe('value');
+  });
+
+  it('Should dedupe a runtime instantiated type', () => {
+    class RuntimeDependency {}
+
+    @Context()
+    class Application {
+      @Inject(Context)
+      context!: Context;
+
+      public getRuntimeDependency() {
+        return this.context.instantiate(RuntimeDependency);
+      }
+    }
+
+    const app = new Application();
+
+    const runtimeDependencyOne = app.getRuntimeDependency();
+    const runtimeDependencyTwo = app.getRuntimeDependency();
+
+    expect(runtimeDependencyOne).toBeInstanceOf(RuntimeDependency);
+    expect(runtimeDependencyTwo).toBeInstanceOf(RuntimeDependency);
+    expect(runtimeDependencyOne).toBe(runtimeDependencyTwo);
   });
 });
