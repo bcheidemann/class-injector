@@ -157,8 +157,12 @@ export const Provide = (symbol?: any): ClassDecorator => (target: Type) => {
   __TypeRegistry.set(_symbol, target);
 }
 
-export const provide = (symbol: Symbol, type: Type) => {
-  __TypeRegistry.set(symbol, type);
+export function provide(symbol: Symbol, type: Type): void;
+export function provide(type: Type): void;
+export function provide(symbolOrType: any, type?: Type): void {
+  const _type = type === undefined ? symbolOrType : type;
+
+  __TypeRegistry.set(symbolOrType, _type);
 }
 
 export const ProvideInstance = (symbol?: any): ClassDecorator => (target: Type) => {
@@ -167,18 +171,27 @@ export const ProvideInstance = (symbol?: any): ClassDecorator => (target: Type) 
   __InstanceRegistry.set(symbol, instance);
 }
 
-export const provideInstance = <T>(symbol: Symbol, constructor: Constructor<T>): T => {
-  const instance = new constructor();
+export function provideInstance<T>(symbol: Symbol, constructor: Constructor<T>): T;
+export function provideInstance<T>(instance: Constructor<T>): T;
+export function provideInstance<T>(symbolOrConstructor: any, constructor?: Constructor<T>): T {
+  const _constructor = constructor === undefined ? symbolOrConstructor : constructor;
 
-  __InstanceRegistry.set(symbol, instance);
+  const instance = new _constructor();
+
+  __InstanceRegistry.set(symbolOrConstructor, instance);
 
   return instance;
 }
 
-export const provideRawInstance = <T extends Instance>(symbol: Symbol, instance: T): T => {
-  __InstanceRegistry.set(symbol, instance);
+export function provideRawInstance<T extends Instance>(symbol: Symbol, instance: T): T;
+export function provideRawInstance<T extends Instance>(instance: T): T;
+export function provideRawInstance<T extends Instance>(symbolOrInstance: any, instance?: T): T {
+  const _symbol = instance === undefined ? symbolOrInstance.constructor : symbolOrInstance;
+  const _instance = instance === undefined ? symbolOrInstance : instance;
 
-  return instance;
+  __InstanceRegistry.set(_symbol, _instance);
+
+  return _instance;
 }
 
 export const getContext = (instance: Instance): Context | null => {

@@ -1,6 +1,6 @@
 {
   "name": "class-injector",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Crazy simple dependency injection for TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,4 +1,4 @@
-import { Context, createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __TypeRegistry } from '..';
+import { Context, createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry } from '..';
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
@@ -164,6 +164,16 @@ describe('index', () => {
     expect(appTwo.dependency.context).toBe(getContext(appTwo));
   });
 
+  it('Should set the type in the type registry when using the provide function', () => {
+    class Dependency {}
+
+    provide(Dependency);
+
+    const type = __TypeRegistry.get(Dependency);
+
+    expect(type).toBe(Dependency);
+  });
+
   it('Should create a unique instance for each context when using the provide function', () => {
     enum Dependencies {
       Dependency,
@@ -238,7 +248,18 @@ describe('index', () => {
     expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
   });
 
-  it('Should provide an instance with the provideInstance function', () => {
+  it('Should set the instance in the instance registry when using the provide function', () => {
+    class Dependency {}
+
+    const providedInstance = provideInstance(Dependency);
+
+    const instance = __InstanceRegistry.get(Dependency);
+
+    expect(instance).toBeInstanceOf(Dependency);
+    expect(instance).toBe(providedInstance);
+  });
+
+  it('Should provide the same instance for different contexts with the provideInstance function', () => {
     enum Dependencies {
       Dependency,
     }
@@ -278,8 +299,28 @@ describe('index', () => {
     expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
   });
 
-
   it('Should provide a raw instance with the provideInstance function', () => {
+    class Dependency {
+      @Inject(Context) context: any;
+    }
+
+    const instance = provideRawInstance(new Dependency());
+
+    @Context()
+    class Application {
+      @Inject()
+      public dependency!: Dependency;
+    }
+
+    const app = new Application();
+
+    expect(app.dependency).toBe(instance);
+    expect(app.dependency).toBeInstanceOf(Dependency);
+
+    expect(() => app.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+  });
+
+  it('Should provide the same raw instance in different contexts with the provideInstance function', () => {
     enum Dependencies {
       Dependency,
     }
