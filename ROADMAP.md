@@ -1,5 +1,6 @@
 # Roadmap
 
-1. Auto-context
-2. Configure missing dependency error behaviour
-3. Nested contexts
+1. Better documentation
+2. Auto-context
+3. Configure missing dependency error behaviour
+4. Nested contexts
