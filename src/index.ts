@@ -5,6 +5,9 @@ const ContextSymbol = Symbol.for('@@class-injector-context@@');
 type Symbol = any;
 type Type = any;
 type Instance = any;
+type Constructor<T> = {
+  new (...args: any[]): T;
+}
 
 type ContextOptions = {
   provide?: ([Type, Instance] | Instance)[],
@@ -12,36 +15,38 @@ type ContextOptions = {
 
 export type Context = Map<Type, Instance> & {
   bind: (instance: Instance) => void;
-  instantiate: (type: Type) => Instance;
+  instantiate: <T>(type: Constructor<T>) => T;
 };
 
 class ContextImpl extends Map<Type, Instance> implements Context {
   public bind(instance: Instance) {
+    if (typeof instance !== 'object') {
+      return;
+    }
+
     Object.defineProperty(instance, ContextSymbol, {
       value: this,
     });
   }
 
-  public instantiate(type: Type) {
+  public instantiate<T>(type: Constructor<T>) {
     let instance = this.get(type);
 
     if (!instance) {
       instance = new type();
 
-      Object.defineProperty(instance, ContextSymbol, {
-        value: this,
-      });
-
       this.set(type, instance);
+      this.bind(instance);
     }
 
     return instance;
   }
 }
 
-const SymbolRegistry = new Map<Symbol, Type>();
+export const __TypeRegistry = new Map<Symbol, Type>();
+export const __InstanceRegistry = new Map<Symbol, Instance>();
 
-export function createContext(options: ContextOptions): Context {
+export function createContext(options: ContextOptions = {}): Context {
   // Create a new context
   const context = new ContextImpl();
 
@@ -101,41 +106,45 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
       }
 
       // Try to get the instance from the context
-      let instance = this[ContextSymbol].get(_type);
+      if (context.has(_type)) {
+        return this[ContextSymbol].get(_type);
+      }
 
       // Get the type from the symbol registry
-      if (!instance) {
-        const type = SymbolRegistry.get(_type);
+      if (__InstanceRegistry.has(_type)) {
+        const instance = __InstanceRegistry.get(_type);
 
-        if (type) {
-          instance = new type();
-
-          context.set(_type, instance);
-
-          // Add the context to the instance
-          Object.defineProperty(instance, ContextSymbol, {
-            value: context,
-          });
-        }
-      }
-
-      // Instantiate the dependency and add it to the context if it's not already in the context
-      if (!instance) {
-        // Ensure the dependency can be instantiated as a constructor type
-        if (typeof _type !== 'function') {
-          throw new Error('Cannot instantiate a symbol type. Please use a class type instead or provide an instance for the type in the context.');
-        }
-
-        instance = new _type();
-
-        // Add the instance to the context
         context.set(_type, instance);
 
-        // Add the context to the instance
-        Object.defineProperty(instance, ContextSymbol, {
-          value: context,
-        });
+        // NOTE: The instance is not bound to the context since it could be reused across many 
+        // contexts ProvideInstance and provideInstance should not be used if the instance requires
+        // access to the parent context. Provide and provide should be used instead, as these will
+        // create a new instance for each context and bind the context to that instance.
+
+        return instance;
       }
+
+      if (__TypeRegistry.has(_type)) {
+        const type = __TypeRegistry.get(_type);
+
+        const instance = new type();
+
+        context.set(_type, instance);
+        context.bind(instance);
+
+        return instance;
+      }
+
+      // Ensure the dependency can be instantiated as a constructor type
+      if (typeof _type !== 'function') {
+        throw new Error('Cannot instantiate a symbol type. Please use a class type instead or provide an instance for the type in the context.');
+      }
+
+      const instance = new _type();
+
+      // Add the instance to the context
+      context.set(_type, instance);
+      context.bind(instance);
 
       return instance;
     },
@@ -143,5 +152,35 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
 }
 
 export const Provide = (symbol?: any): ClassDecorator => (target: Type) => {
-  SymbolRegistry.set(symbol, target);
+  const _symbol = symbol === undefined ? target : symbol;
+
+  __TypeRegistry.set(_symbol, target);
+}
+
+export const provide = (symbol: Symbol, type: Type) => {
+  __TypeRegistry.set(symbol, type);
+}
+
+export const ProvideInstance = (symbol?: any): ClassDecorator => (target: Type) => {
+  const instance = new target();
+
+  __InstanceRegistry.set(symbol, instance);
+}
+
+export const provideInstance = <T>(symbol: Symbol, constructor: Constructor<T>): T => {
+  const instance = new constructor();
+
+  __InstanceRegistry.set(symbol, instance);
+
+  return instance;
+}
+
+export const provideRawInstance = <T extends Instance>(symbol: Symbol, instance: T): T => {
+  __InstanceRegistry.set(symbol, instance);
+
+  return instance;
+}
+
+export const getContext = (instance: Instance): Context | null => {
+  return instance[ContextSymbol];
 }

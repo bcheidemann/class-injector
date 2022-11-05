@@ -1,4 +1,4 @@
-import { Context, createContext, Inject, Provide } from '..';
+import { Context, createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __TypeRegistry } from '..';
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
@@ -117,6 +117,16 @@ describe('index', () => {
   });
 
 
+  it('Should provide the type in the type registry when using Provide decorator', () => {
+    @Provide()
+    class Dependency {}
+
+    const hasDependency = __TypeRegistry.has(Dependency);
+
+    expect(hasDependency).toBe(true);
+  });
+
+
   it('Should create a unique instance for each context when using the Provide decorator', () => {
     enum Dependencies {
       Dependency,
@@ -124,19 +134,21 @@ describe('index', () => {
 
     @Provide(Dependencies.Dependency)
     class Dependency {
+      @Inject(Context) context!: Context;
+
       public key = 'value';
     }
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string };
+      public dependency!: { key: string, context: Context };
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string };
+      public dependency!: { key: string, context: Context };
     }
 
     const appOne = new ApplicationOne();
@@ -146,6 +158,165 @@ describe('index', () => {
     expect(appTwo.dependency).toBeInstanceOf(Dependency);
 
     expect(appOne.dependency).not.toBe(appTwo.dependency);
+    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context);
+
+    expect(appOne.dependency.context).toBe(getContext(appOne));
+    expect(appTwo.dependency.context).toBe(getContext(appTwo));
+  });
+
+  it('Should create a unique instance for each context when using the provide function', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    class Dependency {
+      @Inject(Context) context!: Context;
+
+      public key = 'value';
+    }
+
+    provide(Dependencies.Dependency, Dependency);
+
+    @Context()
+    class ApplicationOne {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: Context };
+    }
+
+    @Context()
+    class ApplicationTwo {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: Context };
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    expect(appOne.dependency).toBeInstanceOf(Dependency);
+    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+
+    expect(appOne.dependency).not.toBe(appTwo.dependency);
+    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context);
+
+    expect(appOne.dependency.context).toBe(getContext(appOne));
+    expect(appTwo.dependency.context).toBe(getContext(appTwo));
+  });
+
+  it('Should provide an instance with the ProvideInstance decorator', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    @ProvideInstance(Dependencies.Dependency)
+    class Dependency {
+      @Inject(Context) context: any;
+
+      public key = 'value';
+    }
+
+    @Context()
+    class ApplicationOne {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    @Context()
+    class ApplicationTwo {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    expect(appOne.dependency).toBeInstanceOf(Dependency);
+    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+
+    expect(appOne.dependency).toBe(appTwo.dependency);
+
+    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+  });
+
+  it('Should provide an instance with the provideInstance function', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    class Dependency {
+      @Inject(Context) context: any;
+
+      public key = 'value';
+    }
+
+    const instance = provideInstance(Dependencies.Dependency, Dependency);
+
+    @Context()
+    class ApplicationOne {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    @Context()
+    class ApplicationTwo {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    expect(appOne.dependency).toBe(instance);
+    expect(appTwo.dependency).toBe(instance);
+
+    expect(appOne.dependency).toBeInstanceOf(Dependency);
+    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+
+    expect(appOne.dependency).toBe(appTwo.dependency);
+
+    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+  });
+
+
+  it('Should provide a raw instance with the provideInstance function', () => {
+    enum Dependencies {
+      Dependency,
+    }
+
+    class Dependency {
+      @Inject(Context) context: any;
+
+      public key = 'value';
+    }
+
+    const instance = provideRawInstance(Dependencies.Dependency, new Dependency());
+
+    @Context()
+    class ApplicationOne {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    @Context()
+    class ApplicationTwo {
+      @Inject(Dependencies.Dependency)
+      public dependency!: { key: string, context: any };
+    }
+
+    const appOne = new ApplicationOne();
+    const appTwo = new ApplicationTwo();
+
+    expect(appOne.dependency).toBe(instance);
+    expect(appTwo.dependency).toBe(instance);
+
+    expect(appOne.dependency).toBeInstanceOf(Dependency);
+    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+
+    expect(appOne.dependency).toBe(appTwo.dependency);
+
+    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
   });
 
   it('Provided classes should share the same context', () => {
@@ -476,5 +647,32 @@ describe('index', () => {
     expect(runtimeDependencyOne).toBeInstanceOf(RuntimeDependency);
     expect(runtimeDependencyTwo).toBeInstanceOf(RuntimeDependency);
     expect(runtimeDependencyOne).toBe(runtimeDependencyTwo);
+  });
+
+  it('Should get the context from an instance', () => {
+    const context = createContext();
+
+    class Application {}
+
+    const app = context.instantiate(Application);
+    const appContext = getContext(app);
+
+    expect(appContext).toBe(context);
+  });
+
+
+  it('Should get the context from an this', () => {
+    const context = createContext();
+
+    class Application {
+      public getContext() {
+        return getContext(this);
+      }
+    }
+
+    const app = context.instantiate(Application);
+    const appContext = app.getContext();
+
+    expect(appContext).toBe(context);
   });
 });
