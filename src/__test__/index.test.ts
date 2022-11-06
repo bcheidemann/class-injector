@@ -418,30 +418,6 @@ describe('index', () => {
     expect(fn).toHaveBeenCalled();
   });
 
-  it('Should throw a descriptive error if a dependency is accessed in the constructor', () => {
-    class DeepDependency {}
-
-    class ShallowDependency {
-      @Inject() deepDependency!: DeepDependency;
-
-      constructor() {
-        this.deepDependency;
-      }
-    }
-
-    @Context()
-    class Application {
-      @Inject()
-      public shallowDependency!: ShallowDependency;
-
-      constructor() {
-        this.shallowDependency;
-      }
-    }
-
-    expect(() => new Application()).toThrowErrorMatchingSnapshot();
-  });
-
   it('Should throw a descriptive error if a class is instantiated which uses @Inject() without @Context()', () => {
     class Dependency {}
 
@@ -701,7 +677,6 @@ describe('index', () => {
     expect(appContext).toBe(context);
   });
 
-
   it('Should get the context from an this', () => {
     const context = createContext();
 
@@ -715,5 +690,67 @@ describe('index', () => {
     const appContext = app.getContext();
 
     expect(appContext).toBe(context);
+  });
+
+  it('Should allow using injected properties in the constructor', () => {
+    class Dependency {}
+
+    @Context()
+    class Application {
+      @Inject() dependency!: Dependency;
+
+      constructor() {
+        expect(this.dependency).toBeInstanceOf(Dependency);
+      }
+    }
+
+    new Application();
+  });
+
+  it('Dependencies should be able to access properties in the constructor', () => {
+    class NestedDependency {}
+
+    class Dependency {
+      @Inject() dependency!: NestedDependency;
+
+      constructor() {
+        expect(this.dependency).toBeInstanceOf(NestedDependency);
+      }
+    }
+
+    @Context()
+    class Application {
+      @Inject() dependency!: Dependency;
+
+      constructor() {
+        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency);
+      }
+    }
+
+    new Application();
+  });
+
+  it('Dependencies provided globally with the provide funtion should be able to access properties in the constructor', () => {
+    class NestedDependency {}
+
+    class Dependency {
+      @Inject() dependency!: NestedDependency;
+
+      constructor() {
+        expect(this.dependency).toBeInstanceOf(NestedDependency);
+      }
+    }
+    provide('Dependency', Dependency)
+
+    @Context()
+    class Application {
+      @Inject('Dependency') dependency: any;
+
+      constructor() {
+        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency);
+      }
+    }
+
+    new Application();
   });
 });

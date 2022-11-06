@@ -1,5 +1,3 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`index Should throw a descriptive error if a class is instantiated which uses @Inject() without @Context() 1`] = `"Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context()."`;
-
-exports[`index Should throw a descriptive error if a dependency is accessed in the constructor 1`] = `"Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context()."`;

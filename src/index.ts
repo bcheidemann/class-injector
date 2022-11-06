@@ -9,7 +9,7 @@ type Constructor<T> = {
   new (...args: any[]): T;
 }
 
-type ContextOptions = {
+export type ContextOptions = {
   provide?: ([Type, Instance] | Instance)[],
 }
 
@@ -33,10 +33,20 @@ class ContextImpl extends Map<Type, Instance> implements Context {
     let instance = this.get(type);
 
     if (!instance) {
+      // Ensure that the instance is bound to the context at the time of instantiation.
+      type.prototype[ContextSymbol] = this;
+
+      // Instantiate the type.
       instance = new type();
 
-      this.set(type, instance);
+      // Unbind the prototype from the context.
+      type.prototype[ContextSymbol] = undefined;
+
+      // Bind the instance to the context.
       this.bind(instance);
+
+      // Store the instance in the context.
+      this.set(type, instance);
     }
 
     return instance;
@@ -95,7 +105,7 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
   Object.defineProperty(target, propertyKey, {
     get() {
       // Get the context
-      const context = this[ContextSymbol];
+      const context = this[ContextSymbol] as (Context | undefined);
       if (!context) {
         throw new Error('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
       }
@@ -127,12 +137,7 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
       if (__TypeRegistry.has(_type)) {
         const type = __TypeRegistry.get(_type);
 
-        const instance = new type();
-
-        context.set(_type, instance);
-        context.bind(instance);
-
-        return instance;
+        return context.instantiate(type);
       }
 
       // Ensure the dependency can be instantiated as a constructor type
@@ -140,13 +145,7 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
         throw new Error('Cannot instantiate a symbol type. Please use a class type instead or provide an instance for the type in the context.');
       }
 
-      const instance = new _type();
-
-      // Add the instance to the context
-      context.set(_type, instance);
-      context.bind(instance);
-
-      return instance;
+      return context.instantiate(_type);
     },
   });
 }
