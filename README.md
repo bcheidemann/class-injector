@@ -98,7 +98,7 @@ describe('README Testing Example #1', () => {
       ],
     });
 
-    const app = context.get(Application)!;
+    const app = context.get<Application>(Application)!;
 
     app.dependency.fn();
 
