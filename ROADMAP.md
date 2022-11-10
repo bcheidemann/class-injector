@@ -9,7 +9,7 @@ context.
 
 For example:
 
-```ts
+```ts, ignore
 class InnerDependency {}
 class OuterDependency {}
 
@@ -43,7 +43,7 @@ nearest context.
 
 For example:
 
-```ts
+```ts, ignore
 class Dependency {}
 
 @Context()
