@@ -1,3 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`index Should log an appropriate error when setting a type on a context but no context partials are bound to the context 1`] = `
+"Failed to set an instance in the context because no context partials are bound to the context.
+Unless you are manipulating the context directly, this is a bug.
+Please report this issue at https://github.com/bcheidemann/class-injector/issues/new"
+`;
+
 exports[`index Should throw a descriptive error if a class is instantiated which uses @Inject() without @Context() 1`] = `"Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context()."`;

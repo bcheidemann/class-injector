@@ -1,4 +1,4 @@
-import { Context, createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry } from '..';
+import { createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry, Context } from '..';
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
@@ -499,7 +499,7 @@ describe('index', () => {
       ],
     });
 
-    const app = context.get(Application);
+    const app = context.get<Application>(Application);
 
     app!.dependency.fn();
 
@@ -540,8 +540,8 @@ describe('index', () => {
       ],
     });
 
-    const appOne = contextOne.get(Application);
-    const appTwo = contextTwo.get(Application);
+    const appOne = contextOne.get<Application>(Application);
+    const appTwo = contextTwo.get<Application>(Application);
 
     appOne!.dependency.fn('one');
     appTwo!.dependency.fn('two');
@@ -752,5 +752,133 @@ describe('index', () => {
     }
 
     new Application();
+  });
+
+  it('Should have access to nested contexts using the Inject decorator in nested context', () => {
+    class DependencyOne {}
+
+    const dependencyOne = new DependencyOne();
+
+    class DependencyTwo {}
+
+    const dependencyTwo = new DependencyTwo();
+
+    @Context({
+      provide: [dependencyTwo]
+    })
+    class Application {
+      @Inject() dependencyOne!: DependencyOne;
+      @Inject() dependencyTwo!: DependencyTwo;
+    }
+
+    @Context({
+      provide: [dependencyOne]
+    })
+    class Root {
+      @Inject() application!: Application;
+    }
+
+    const root = new Root();
+
+    expect(root.application.dependencyOne).toBe(dependencyOne);
+    expect(root.application.dependencyTwo).toBe(dependencyTwo);
+  });
+
+  it('Should have access to nested contexts using the Inject decorator in dependency', () => {
+    class DependencyOne {}
+
+    const dependencyOne = new DependencyOne();
+
+    class DependencyTwo {}
+
+    const dependencyTwo = new DependencyTwo();
+
+    class Service {
+      @Inject() dependencyOne!: DependencyOne;
+      @Inject() dependencyTwo!: DependencyTwo;
+    }
+
+    @Context({
+      provide: [dependencyTwo]
+    })
+    class Application {
+      @Inject() service!: Service;
+    }
+
+    @Context({
+      provide: [dependencyOne]
+    })
+    class Root {
+      @Inject() application!: Application;
+    }
+
+    const root = new Root();
+
+    expect(root.application.service.dependencyOne).toBe(dependencyOne);
+    expect(root.application.service.dependencyTwo).toBe(dependencyTwo);
+  });
+
+  it('Should have access to nested contexts when extending a class decorated with Context', () => {
+    class DependencyOne {}
+
+    const dependencyOne = new DependencyOne();
+
+    class DependencyTwo {}
+
+    const dependencyTwo = new DependencyTwo();
+
+    @Context({
+      provide: [dependencyTwo]
+    })
+    class BaseApplication {}
+
+    @Context({
+      provide: [dependencyOne]
+    })
+    class Application extends BaseApplication {
+      @Inject() dependencyOne!: DependencyOne;
+      @Inject() dependencyTwo!: DependencyTwo;
+    }
+
+    const app = new Application();
+
+    expect(app.dependencyOne).toBe(dependencyOne);
+    expect(app.dependencyTwo).toBe(dependencyTwo);
+  });
+
+  it('Should be able to decorate a class with multiple contexts', () => {
+    class DependencyOne {}
+
+    const dependencyOne = new DependencyOne();
+
+    class DependencyTwo {}
+
+    const dependencyTwo = new DependencyTwo();
+
+    @Context({
+      provide: [dependencyTwo]
+    })
+    @Context({
+      provide: [dependencyOne]
+    })
+    class Application {
+      @Inject() dependencyOne!: DependencyOne;
+      @Inject() dependencyTwo!: DependencyTwo;
+    }
+
+    const app = new Application();
+
+    expect(app.dependencyOne).toBe(dependencyOne);
+    expect(app.dependencyTwo).toBe(dependencyTwo);
+  });
+
+  it('Should log an appropriate error when setting a type on a context but no context partials are bound to the context', () => {
+    const context = createContext();
+
+    Object.defineProperty(context, 'contextPartials', {
+      value: []
+    });
+
+    expect(() => context.set('test', 'test')).toThrowErrorMatchingSnapshot();
   });
 });

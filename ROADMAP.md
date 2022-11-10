@@ -1,8 +1,8 @@
 # Roadmap
 
-## Nested Context
+## Nested Context (✅)
 
-*Stage: in progress*
+*Stage: awaiting documentation*
 
 It should be possible to nest contexts. In this case, a dependency should be provided by the nearest
 context.
@@ -66,9 +66,6 @@ const app = new OuterContext();
 
 expect(app.innerContextOne.dependency).not.toBe(app.innerContextTwo.dependency);
 ```
-
-Some minor refactoring has been done in version 1.3.1 to lay the foundations for implementing this
-feature.
 
 ## Better Documentation
 

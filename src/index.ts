@@ -13,34 +13,79 @@ export type ContextOptions = {
   provide?: ([Type, Instance] | Instance)[],
 }
 
-export type Context = Map<Type, Instance> & {
+export type PartialContext = {
+  get<Instance>(type: Type): Instance | null;
+  set(type: Type, instance: Instance): void;
+  has(type: Type): boolean;
+};
+
+export type Context = PartialContext & {
   bind: (instance: Instance) => void;
   instantiate: <T>(type: Constructor<T>) => T;
 };
 
-class ContextImpl extends Map<Type, Instance> implements Context {
-  public bind(instance: Instance) {
-    if (typeof instance !== 'object') {
-      return;
+class PartialContextImpl extends Map<Type, Instance> implements PartialContext {}
+
+class ContextImpl implements Context {
+  public contextPartials: PartialContext[] = [];
+
+  public get<Instance>(type: Type): Instance | null {
+    for (const partial of this.contextPartials) {
+      if (partial.has(type)) {
+        return partial.get(type);
+      }
     }
 
-    Object.defineProperty(instance, ContextSymbol, {
-      value: this,
-    });
+    return null;
   }
 
-  public instantiate<T>(type: Constructor<T>) {
-    let instance = this.get(type);
+  public set(type: Type, instance: Instance): void {
+    if (this.contextPartials.length === 0) {
+      throw new Error([
+        'Failed to set an instance in the context because no context partials are bound to the context.',
+        'Unless you are manipulating the context directly, this is a bug.',
+        'Please report this issue at https://github.com/bcheidemann/class-injector/issues/new'
+      ].join('\n'));
+    }
+
+    this.contextPartials[0].set(type, instance);
+  }
+
+  public has(type: Type): boolean {
+    return this.contextPartials.some(partial => partial.has(type));
+  }
+
+  public instantiate<Instance>(type: Constructor<Instance>): Instance {
+    let instance = this.get<Instance>(type);
 
     if (!instance) {
-      // Ensure that the instance is bound to the context at the time of instantiation.
-      type.prototype[ContextSymbol] = this;
+      // Get existing context if one exists
+      const existingContext = type.prototype[ContextSymbol] as ContextImpl;
 
-      // Instantiate the type.
-      instance = new type();
+      if (existingContext) {
+        // Extend the existing context
+        existingContext.contextPartials.push(...this.contextPartials);
 
-      // Unbind the prototype from the context.
-      type.prototype[ContextSymbol] = undefined;
+        // Instantiate the type.
+        instance = new type();
+
+        // Remove the context partials we added
+        existingContext.contextPartials.splice(
+          existingContext.contextPartials.length - this.contextPartials.length,
+          this.contextPartials.length
+        );
+      }
+      
+      else {
+        // Bind the context to the types prototype
+        type.prototype[ContextSymbol] = this;
+
+        // Instantiate the type.
+        instance = new type();
+
+        // Unbind the prototype from the context.
+        type.prototype[ContextSymbol] = undefined;
+      }
 
       // Bind the instance to the context.
       this.bind(instance);
@@ -50,15 +95,35 @@ class ContextImpl extends Map<Type, Instance> implements Context {
     }
 
     return instance;
+  };
+
+  public bind(instance: Instance) {
+    if (typeof instance !== 'object') {
+      return;
+    }
+
+    const existingContext = instance[ContextSymbol] as ContextImpl;
+
+    if (existingContext) {
+      // Extend the existing context
+      existingContext.contextPartials.push(...this.contextPartials);
+
+      return;
+    }
+
+    // Bind this context to the instance
+    Object.defineProperty(instance, ContextSymbol, {
+      value: this,
+    });
   }
 }
 
 export const __TypeRegistry = new Map<Symbol, Type>();
 export const __InstanceRegistry = new Map<Symbol, Instance>();
 
-export function createContext(options: ContextOptions = {}): Context {
+export function createPartialForContext(context: Context, options: ContextOptions = {}): PartialContext {
   // Create a new context
-  const context = new ContextImpl();
+  const partial = new PartialContextImpl();
 
   // Provide the context to the constructor
   const provide = options.provide || [];
@@ -76,7 +141,7 @@ export function createContext(options: ContextOptions = {}): Context {
     }
 
     // Add the instance to the context
-    context.set(type, instance);
+    partial.set(type, instance);
 
     // Add the context to the instance
     if (typeof instance === 'object') {
@@ -86,12 +151,38 @@ export function createContext(options: ContextOptions = {}): Context {
     }
   }
 
+  return partial;
+}
+
+export function createContext(options: ContextOptions = {}): Context {
+  // Create a new context context
+  const context = new ContextImpl();
+
+  // Create a new context
+  const partial = createPartialForContext(context, options);
+
+  // Bind the context to the context
+  context.contextPartials.unshift(partial);
+
   return context;
 }
 
-export const Context = (options: ContextOptions = {}): ClassDecorator => (target: Type) => {
-  // Set the context on the constructor prototype
-  target.prototype[ContextSymbol] = createContext(options);
+export const Context = (options: ContextOptions = {}): ClassDecorator => (target: any) => {
+  // Get the context context from the target if it exists
+  let context: ContextImpl | undefined = target.prototype[ContextSymbol];
+
+  // Create a new context context if it doesn't exist and bind it to the target
+  if (!context) {
+    context = new ContextImpl();
+
+    target.prototype[ContextSymbol] = context;
+  }
+
+  // Create a new context partial
+  const partial = createPartialForContext(context, options);
+
+  // Bind the context partial to the context
+  context.contextPartials.unshift(partial);
 }
 
 export const Inject = (type?: any): PropertyDecorator => (target: Instance, propertyKey: string | symbol) => {
