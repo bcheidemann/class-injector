@@ -1,4 +1,4 @@
-import { createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry, Context } from '..';
+import { createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry, Context, isContext } from '..';
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
@@ -218,22 +218,18 @@ describe('index', () => {
     }
 
     @ProvideInstance(Dependencies.Dependency)
-    class Dependency {
-      @Inject(Context) context: any;
-
-      public key = 'value';
-    }
+    class Dependency {}
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     const appOne = new ApplicationOne();
@@ -244,8 +240,8 @@ describe('index', () => {
 
     expect(appOne.dependency).toBe(appTwo.dependency);
 
-    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
-    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(getContext(appOne.dependency)).toBeUndefined();
+    expect(getContext(appTwo.dependency)).toBeUndefined();
   });
 
   it('Should set the instance in the instance registry when using the provide function', () => {
@@ -264,24 +260,20 @@ describe('index', () => {
       Dependency,
     }
 
-    class Dependency {
-      @Inject(Context) context: any;
-
-      public key = 'value';
-    }
+    class Dependency {}
 
     const instance = provideInstance(Dependencies.Dependency, Dependency);
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     const appOne = new ApplicationOne();
@@ -295,14 +287,12 @@ describe('index', () => {
 
     expect(appOne.dependency).toBe(appTwo.dependency);
 
-    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
-    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(getContext(appOne.dependency)).toBeUndefined();
+    expect(getContext(appTwo.dependency)).toBeUndefined();
   });
 
-  it('Should provide a raw instance with the provideInstance function', () => {
-    class Dependency {
-      @Inject(Context) context: any;
-    }
+  it('Should provide a raw instance with the provideRawInstance function', () => {
+    class Dependency {}
 
     const instance = provideRawInstance(new Dependency());
 
@@ -317,7 +307,7 @@ describe('index', () => {
     expect(app.dependency).toBe(instance);
     expect(app.dependency).toBeInstanceOf(Dependency);
 
-    expect(() => app.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(getContext(app.dependency)).toBeUndefined();
   });
 
   it('Should provide the same raw instance in different contexts with the provideInstance function', () => {
@@ -325,24 +315,20 @@ describe('index', () => {
       Dependency,
     }
 
-    class Dependency {
-      @Inject(Context) context: any;
-
-      public key = 'value';
-    }
+    class Dependency {}
 
     const instance = provideRawInstance(Dependencies.Dependency, new Dependency());
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: any };
+      public dependency: any;
     }
 
     const appOne = new ApplicationOne();
@@ -356,8 +342,8 @@ describe('index', () => {
 
     expect(appOne.dependency).toBe(appTwo.dependency);
 
-    expect(() => appOne.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
-    expect(() => appTwo.dependency.context).toThrowError('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+    expect(getContext(appOne.dependency)).toBeUndefined();
+    expect(getContext(appTwo.dependency)).toBeUndefined();
   });
 
   it('Provided classes should share the same context', () => {
@@ -416,21 +402,6 @@ describe('index', () => {
     app.dependency.fn();
 
     expect(fn).toHaveBeenCalled();
-  });
-
-  it('Should throw a descriptive error if a class is instantiated which uses @Inject() without @Context()', () => {
-    class Dependency {}
-
-    class Application {
-      @Inject()
-      public shallowDependency!: Dependency;
-
-      constructor() {
-        this.shallowDependency;
-      }
-    }
-
-    expect(() => new Application()).toThrowErrorMatchingSnapshot();
   });
 
   it('Should allow multiple contexts to for different classes', () => {
@@ -880,5 +851,77 @@ describe('index', () => {
     });
 
     expect(() => context.set('test', 'test')).toThrowErrorMatchingSnapshot();
+  });
+
+  it('Should create an implicit context', () => {
+    class Dependency {}
+
+    class Application {
+      @Inject() dependency!: Dependency;
+    }
+
+    const app = new Application();
+
+    expect(app.dependency).toBeInstanceOf(Dependency);
+  });
+
+  it('Should not create an implicit context when a context can be inherited', () => {
+    class NestedDependency {}
+
+    class Dependency {
+      @Inject() dependency!: NestedDependency;
+    }
+
+    class Application {
+      @Inject() dependency!: Dependency;
+    }
+
+    const app = new Application();
+
+    // Access the dependency to trigger the context to be created
+    app.dependency.dependency;
+
+    expect(getContext(app)).toBe(getContext(app.dependency));
+  });
+
+  it('Should be possible to inject an implicit context', () => {
+    class Application {
+      @Inject(Context) context: any;
+    }
+
+    const app = new Application();
+
+    expect(isContext(app.context)).toBe(true);
+  });
+
+  it('Should be possible for an implicit context to be extended by a nested context', () => {
+    class Dependency {}
+
+    @Context()
+    class NestedContext {
+      @Inject() dependency!: Dependency;
+    }
+
+    class Application {
+      @Inject() dependency!: Dependency;
+      @Inject() nestedContext!: NestedContext;
+    }
+
+    const app = new Application();
+
+    expect(app.dependency).toBeInstanceOf(Dependency);
+    expect(app.nestedContext.dependency).toBeInstanceOf(Dependency);
+    
+    expect(app.nestedContext.dependency).toBe(app.dependency);
+  });
+
+  it('Should return true when isContext is called with a context', () => {
+    const context = createContext();
+
+    expect(isContext(context)).toBe(true);
+  });
+
+  it('Should return false when isContext is called with a non context', () => {
+    expect(isContext({})).toBe(false);
   });
 });

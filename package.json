@@ -1,13 +1,15 @@
 {
   "name": "class-injector",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Crazy simple dependency injection for TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "check": "npm run check:ts && npm run check:docs",
+    "check:ts": "tsc --noEmit",
     "check:docs": "doc-check",
-    "test": "jest && doc-check",
+    "test": "jest",
     "test:watch": "DIAGNOSTICS_EXCLUDE=** jest --watch"
   },
   "repository": {

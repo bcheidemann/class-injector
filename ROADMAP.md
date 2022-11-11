@@ -67,20 +67,20 @@ const app = new OuterContext();
 expect(app.innerContextOne.dependency).not.toBe(app.innerContextTwo.dependency);
 ```
 
-## Better Documentation
-
-*Stage: research*
-
-Ideally documentation would be generated largely from typescript types and JsDoc comments, with some
-hand written docs generated from markdown files.
-
-## Auto-context
+## Auto-context (✅)
 
 *Stage: unstarted*
 
 When a class uses the `@Inject` decorator but is neither decorated with `@Context` nor injected
 into a class with a bound context, then it should behave as though it is decorated with `@Context`
 with default context options.
+
+## Better Documentation
+
+*Stage: awaiting documentation*
+
+Ideally documentation would be generated largely from typescript types and JsDoc comments, with some
+hand written docs generated from markdown files.
 
 ## Configurable missing dependency error behaviour
 
@@ -91,3 +91,9 @@ then an error is thrown when the property getter is invoked. In some cases, it m
 to return `null` instead. Ideally, this behaviour would be customisable via the context options.
 It may also be possible to expose a `setDefaultContextOptions` function, or a `createContextDecorator`
 function.
+
+## Usage without decorators
+
+*Stage: unstarted*
+
+There should be an ergonomic and documented way to use the library without decorators.

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-const ContextSymbol = Symbol.for('@@class-injector-context@@');
+export const __ContextSymbol = Symbol.for('@@class-injector-context@@');
 
 type Symbol = any;
 type Type = any;
@@ -60,7 +60,7 @@ class ContextImpl implements Context {
 
     if (!instance) {
       // Get existing context if one exists
-      const existingContext = type.prototype[ContextSymbol] as ContextImpl;
+      const existingContext = type.prototype[__ContextSymbol] as ContextImpl;
 
       if (existingContext) {
         // Extend the existing context
@@ -78,13 +78,13 @@ class ContextImpl implements Context {
       
       else {
         // Bind the context to the types prototype
-        type.prototype[ContextSymbol] = this;
+        type.prototype[__ContextSymbol] = this;
 
         // Instantiate the type.
         instance = new type();
 
         // Unbind the prototype from the context.
-        type.prototype[ContextSymbol] = undefined;
+        type.prototype[__ContextSymbol] = undefined;
       }
 
       // Bind the instance to the context.
@@ -102,7 +102,7 @@ class ContextImpl implements Context {
       return;
     }
 
-    const existingContext = instance[ContextSymbol] as ContextImpl;
+    const existingContext = instance[__ContextSymbol] as ContextImpl;
 
     if (existingContext) {
       // Extend the existing context
@@ -112,7 +112,7 @@ class ContextImpl implements Context {
     }
 
     // Bind this context to the instance
-    Object.defineProperty(instance, ContextSymbol, {
+    Object.defineProperty(instance, __ContextSymbol, {
       value: this,
     });
   }
@@ -145,7 +145,7 @@ export function createPartialForContext(context: Context, options: ContextOption
 
     // Add the context to the instance
     if (typeof instance === 'object') {
-      Object.defineProperty(instance, ContextSymbol, {
+      Object.defineProperty(instance, __ContextSymbol, {
         value: context,
       });
     }
@@ -169,13 +169,13 @@ export function createContext(options: ContextOptions = {}): Context {
 
 export const Context = (options: ContextOptions = {}): ClassDecorator => (target: any) => {
   // Get the context context from the target if it exists
-  let context: ContextImpl | undefined = target.prototype[ContextSymbol];
+  let context: ContextImpl | undefined = target.prototype[__ContextSymbol];
 
   // Create a new context context if it doesn't exist and bind it to the target
   if (!context) {
     context = new ContextImpl();
 
-    target.prototype[ContextSymbol] = context;
+    target.prototype[__ContextSymbol] = context;
   }
 
   // Create a new context partial
@@ -196,9 +196,9 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
   Object.defineProperty(target, propertyKey, {
     get() {
       // Get the context
-      const context = this[ContextSymbol] as (Context | undefined);
+      let context = this[__ContextSymbol] as (Context | undefined);
       if (!context) {
-        throw new Error('Context not initialized. You may be attempting to access a dependency in the constructor or you may have instantiated a class not decorated with @Context().');
+        this[__ContextSymbol] = context = createContext();
       }
 
       // Return the context if the @Inject(Context) pattern is used
@@ -208,7 +208,7 @@ export const Inject = (type?: any): PropertyDecorator => (target: Instance, prop
 
       // Try to get the instance from the context
       if (context.has(_type)) {
-        return this[ContextSymbol].get(_type);
+        return this[__ContextSymbol].get(_type);
       }
 
       // Get the type from the symbol registry
@@ -285,5 +285,9 @@ export function provideRawInstance<T extends Instance>(symbolOrInstance: any, in
 }
 
 export const getContext = (instance: Instance): Context | null => {
-  return instance[ContextSymbol];
+  return instance[__ContextSymbol];
+}
+
+export const isContext = (instance: any): instance is Context => {
+  return instance instanceof ContextImpl;
 }
