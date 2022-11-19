@@ -5,11 +5,10 @@ module.exports = {
   globals: {
     'ts-jest': {
       diagnostics: {
-        exclude:
-          process.env.DIAGNOSTICS_EXCLUDE
-            ? [process.env.DIAGNOSTICS_EXCLUDE]
-            : [],
+        exclude: process.env.DIAGNOSTICS_EXCLUDE
+          ? [process.env.DIAGNOSTICS_EXCLUDE]
+          : [],
       },
     },
   },
-};
+}

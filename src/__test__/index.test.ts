@@ -1,75 +1,86 @@
-import { createContext, getContext, Inject, provide, Provide, ProvideInstance, provideInstance, provideRawInstance, __InstanceRegistry, __TypeRegistry, Context, isContext } from '..';
+import {
+  createContext,
+  getContext,
+  Inject,
+  provide,
+  Provide,
+  ProvideInstance,
+  provideInstance,
+  provideRawInstance,
+  __InstanceRegistry,
+  __TypeRegistry,
+  Context,
+  isContext,
+} from '..'
 
 describe('index', () => {
   it('Should automatically inject dependencies', () => {
-    const fn = jest.fn();
+    const fn = jest.fn()
 
     class Dependency {
-      public fn = fn;
+      public fn = fn
     }
 
     @Context()
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    app.dependency.fn();
+    app.dependency.fn()
 
-    expect(fn).toHaveBeenCalled();
-  });
+    expect(fn).toHaveBeenCalled()
+  })
 
   it('Should automatically inject nested dependencies', () => {
-    const fn = jest.fn();
+    const fn = jest.fn()
 
     class DeepDependency {
-      public fn = fn;
+      public fn = fn
     }
 
     class ShallowDependency {
-      @Inject() deepDependency!: DeepDependency;
+      @Inject() deepDependency!: DeepDependency
     }
 
     @Context()
     class Application {
       @Inject()
-      public shallowDependency!: ShallowDependency;
+      public shallowDependency!: ShallowDependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    app.shallowDependency.deepDependency.fn();
+    app.shallowDependency.deepDependency.fn()
 
-    expect(fn).toHaveBeenCalled();
-  });
+    expect(fn).toHaveBeenCalled()
+  })
 
   it('Should provide a mock instance', () => {
     const mock: Dependency = {
       fn: jest.fn(),
-    };
+    }
 
     class Dependency {
-      public fn: Function = () => fail('Should not be called');
+      public fn: Function = () => fail('Should not be called')
     }
 
     @Context({
-      provide: [
-        [Dependency, mock],
-      ],
+      provide: [[Dependency, mock]],
     })
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    app.dependency.fn();
+    app.dependency.fn()
 
-    expect(mock.fn).toHaveBeenCalled();
-  });
+    expect(mock.fn).toHaveBeenCalled()
+  })
 
   it('Should provide an instance by symbol type using the context provide option', () => {
     enum Dependencies {
@@ -77,23 +88,21 @@ describe('index', () => {
     }
 
     class Dependency {
-      public key = 'value';
+      public key = 'value'
     }
 
     @Context({
-      provide: [
-        [Dependencies.Dependency, new Dependency()],
-      ],
+      provide: [[Dependencies.Dependency, new Dependency()]],
     })
     class Application {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string };
+      public dependency!: { key: string }
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependency.key).toBe('value');
-  });
+    expect(app.dependency.key).toBe('value')
+  })
 
   it('Should provide an instance by symbol type using the Provide decorator', () => {
     enum Dependencies {
@@ -102,30 +111,28 @@ describe('index', () => {
 
     @Provide(Dependencies.Dependency)
     class Dependency {
-      public key = 'value';
+      public key = 'value'
     }
 
     @Context()
     class Application {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string };
+      public dependency!: { key: string }
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependency.key).toBe('value');
-  });
-
+    expect(app.dependency.key).toBe('value')
+  })
 
   it('Should provide the type in the type registry when using Provide decorator', () => {
     @Provide()
     class Dependency {}
 
-    const hasDependency = __TypeRegistry.has(Dependency);
+    const hasDependency = __TypeRegistry.has(Dependency)
 
-    expect(hasDependency).toBe(true);
-  });
-
+    expect(hasDependency).toBe(true)
+  })
 
   it('Should create a unique instance for each context when using the Provide decorator', () => {
     enum Dependencies {
@@ -134,45 +141,45 @@ describe('index', () => {
 
     @Provide(Dependencies.Dependency)
     class Dependency {
-      @Inject(Context) context!: Context;
+      @Inject(Context) context!: Context
 
-      public key = 'value';
+      public key = 'value'
     }
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: Context };
+      public dependency!: { key: string; context: Context }
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: Context };
+      public dependency!: { key: string; context: Context }
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    expect(appOne.dependency).toBeInstanceOf(Dependency);
-    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+    expect(appOne.dependency).toBeInstanceOf(Dependency)
+    expect(appTwo.dependency).toBeInstanceOf(Dependency)
 
-    expect(appOne.dependency).not.toBe(appTwo.dependency);
-    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context);
+    expect(appOne.dependency).not.toBe(appTwo.dependency)
+    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context)
 
-    expect(appOne.dependency.context).toBe(getContext(appOne));
-    expect(appTwo.dependency.context).toBe(getContext(appTwo));
-  });
+    expect(appOne.dependency.context).toBe(getContext(appOne))
+    expect(appTwo.dependency.context).toBe(getContext(appTwo))
+  })
 
   it('Should set the type in the type registry when using the provide function', () => {
     class Dependency {}
 
-    provide(Dependency);
+    provide(Dependency)
 
-    const type = __TypeRegistry.get(Dependency);
+    const type = __TypeRegistry.get(Dependency)
 
-    expect(type).toBe(Dependency);
-  });
+    expect(type).toBe(Dependency)
+  })
 
   it('Should create a unique instance for each context when using the provide function', () => {
     enum Dependencies {
@@ -180,37 +187,37 @@ describe('index', () => {
     }
 
     class Dependency {
-      @Inject(Context) context!: Context;
+      @Inject(Context) context!: Context
 
-      public key = 'value';
+      public key = 'value'
     }
 
-    provide(Dependencies.Dependency, Dependency);
+    provide(Dependencies.Dependency, Dependency)
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: Context };
+      public dependency!: { key: string; context: Context }
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency!: { key: string, context: Context };
+      public dependency!: { key: string; context: Context }
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    expect(appOne.dependency).toBeInstanceOf(Dependency);
-    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+    expect(appOne.dependency).toBeInstanceOf(Dependency)
+    expect(appTwo.dependency).toBeInstanceOf(Dependency)
 
-    expect(appOne.dependency).not.toBe(appTwo.dependency);
-    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context);
+    expect(appOne.dependency).not.toBe(appTwo.dependency)
+    expect(appOne.dependency.context).not.toBe(appTwo.dependency.context)
 
-    expect(appOne.dependency.context).toBe(getContext(appOne));
-    expect(appTwo.dependency.context).toBe(getContext(appTwo));
-  });
+    expect(appOne.dependency.context).toBe(getContext(appOne))
+    expect(appTwo.dependency.context).toBe(getContext(appTwo))
+  })
 
   it('Should provide an instance with the ProvideInstance decorator', () => {
     enum Dependencies {
@@ -223,37 +230,37 @@ describe('index', () => {
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    expect(appOne.dependency).toBeInstanceOf(Dependency);
-    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+    expect(appOne.dependency).toBeInstanceOf(Dependency)
+    expect(appTwo.dependency).toBeInstanceOf(Dependency)
 
-    expect(appOne.dependency).toBe(appTwo.dependency);
+    expect(appOne.dependency).toBe(appTwo.dependency)
 
-    expect(getContext(appOne.dependency)).toBeUndefined();
-    expect(getContext(appTwo.dependency)).toBeUndefined();
-  });
+    expect(getContext(appOne.dependency)).toBeUndefined()
+    expect(getContext(appTwo.dependency)).toBeUndefined()
+  })
 
   it('Should set the instance in the instance registry when using the provide function', () => {
     class Dependency {}
 
-    const providedInstance = provideInstance(Dependency);
+    const providedInstance = provideInstance(Dependency)
 
-    const instance = __InstanceRegistry.get(Dependency);
+    const instance = __InstanceRegistry.get(Dependency)
 
-    expect(instance).toBeInstanceOf(Dependency);
-    expect(instance).toBe(providedInstance);
-  });
+    expect(instance).toBeInstanceOf(Dependency)
+    expect(instance).toBe(providedInstance)
+  })
 
   it('Should provide the same instance for different contexts with the provideInstance function', () => {
     enum Dependencies {
@@ -262,53 +269,53 @@ describe('index', () => {
 
     class Dependency {}
 
-    const instance = provideInstance(Dependencies.Dependency, Dependency);
+    const instance = provideInstance(Dependencies.Dependency, Dependency)
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    expect(appOne.dependency).toBe(instance);
-    expect(appTwo.dependency).toBe(instance);
+    expect(appOne.dependency).toBe(instance)
+    expect(appTwo.dependency).toBe(instance)
 
-    expect(appOne.dependency).toBeInstanceOf(Dependency);
-    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+    expect(appOne.dependency).toBeInstanceOf(Dependency)
+    expect(appTwo.dependency).toBeInstanceOf(Dependency)
 
-    expect(appOne.dependency).toBe(appTwo.dependency);
+    expect(appOne.dependency).toBe(appTwo.dependency)
 
-    expect(getContext(appOne.dependency)).toBeUndefined();
-    expect(getContext(appTwo.dependency)).toBeUndefined();
-  });
+    expect(getContext(appOne.dependency)).toBeUndefined()
+    expect(getContext(appTwo.dependency)).toBeUndefined()
+  })
 
   it('Should provide a raw instance with the provideRawInstance function', () => {
     class Dependency {}
 
-    const instance = provideRawInstance(new Dependency());
+    const instance = provideRawInstance(new Dependency())
 
     @Context()
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependency).toBe(instance);
-    expect(app.dependency).toBeInstanceOf(Dependency);
+    expect(app.dependency).toBe(instance)
+    expect(app.dependency).toBeInstanceOf(Dependency)
 
-    expect(getContext(app.dependency)).toBeUndefined();
-  });
+    expect(getContext(app.dependency)).toBeUndefined()
+  })
 
   it('Should provide the same raw instance in different contexts with the provideInstance function', () => {
     enum Dependencies {
@@ -317,302 +324,283 @@ describe('index', () => {
 
     class Dependency {}
 
-    const instance = provideRawInstance(Dependencies.Dependency, new Dependency());
+    const instance = provideRawInstance(
+      Dependencies.Dependency,
+      new Dependency()
+    )
 
     @Context()
     class ApplicationOne {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
     @Context()
     class ApplicationTwo {
       @Inject(Dependencies.Dependency)
-      public dependency: any;
+      public dependency: any
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    expect(appOne.dependency).toBe(instance);
-    expect(appTwo.dependency).toBe(instance);
+    expect(appOne.dependency).toBe(instance)
+    expect(appTwo.dependency).toBe(instance)
 
-    expect(appOne.dependency).toBeInstanceOf(Dependency);
-    expect(appTwo.dependency).toBeInstanceOf(Dependency);
+    expect(appOne.dependency).toBeInstanceOf(Dependency)
+    expect(appTwo.dependency).toBeInstanceOf(Dependency)
 
-    expect(appOne.dependency).toBe(appTwo.dependency);
+    expect(appOne.dependency).toBe(appTwo.dependency)
 
-    expect(getContext(appOne.dependency)).toBeUndefined();
-    expect(getContext(appTwo.dependency)).toBeUndefined();
-  });
+    expect(getContext(appOne.dependency)).toBeUndefined()
+    expect(getContext(appTwo.dependency)).toBeUndefined()
+  })
 
   it('Provided classes should share the same context', () => {
     class Common {}
 
     class Dependency {
       @Inject()
-      public common!: Common;
+      public common!: Common
     }
 
     @Context({
-      provide: [
-        new Dependency(),
-      ],
+      provide: [new Dependency()],
     })
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
 
       @Inject()
-      public common!: Common;
+      public common!: Common
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.common).toBeInstanceOf(Common);
-    expect(app.dependency.common).toBeInstanceOf(Common);
-    expect(app.common).toBe(app.dependency.common);
-  });
+    expect(app.common).toBeInstanceOf(Common)
+    expect(app.dependency.common).toBeInstanceOf(Common)
+    expect(app.common).toBe(app.dependency.common)
+  })
 
   it('Should provide an instance', () => {
-    const fn = jest.fn();
+    const fn = jest.fn()
 
     class Dependency {
-      constructor(
-        private callback: () => void,
-      ) {}
+      constructor(private callback: () => void) {}
 
       public fn() {
-        this.callback();
+        this.callback()
       }
     }
 
     @Context({
-      provide: [
-        new Dependency(fn),
-      ],
+      provide: [new Dependency(fn)],
     })
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    app.dependency.fn();
+    app.dependency.fn()
 
-    expect(fn).toHaveBeenCalled();
-  });
+    expect(fn).toHaveBeenCalled()
+  })
 
   it('Should allow multiple contexts to for different classes', () => {
     abstract class Dependency {
-      public abstract fn(context: 'one' | 'two'): void;
+      public abstract fn(context: 'one' | 'two'): void
     }
 
     class DependencyOne extends Dependency {
-      static fn = jest.fn();
-      public fn = DependencyOne.fn;
+      static fn = jest.fn()
+      public fn = DependencyOne.fn
     }
 
     class DependencyTwo extends Dependency {
-      static fn = jest.fn();
-      public fn = DependencyTwo.fn;
+      static fn = jest.fn()
+      public fn = DependencyTwo.fn
     }
 
     @Context({
-      provide: [
-        [Dependency, new DependencyOne()],
-      ],
+      provide: [[Dependency, new DependencyOne()]],
     })
     class ApplicationOne {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
     @Context({
-      provide: [
-        [Dependency, new DependencyTwo()],
-      ],
+      provide: [[Dependency, new DependencyTwo()]],
     })
     class ApplicationTwo {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
-    const appOne = new ApplicationOne();
-    const appTwo = new ApplicationTwo();
+    const appOne = new ApplicationOne()
+    const appTwo = new ApplicationTwo()
 
-    appOne!.dependency.fn('one');
-    appTwo!.dependency.fn('two');
+    appOne!.dependency.fn('one')
+    appTwo!.dependency.fn('two')
 
-    expect(DependencyOne.fn).toHaveBeenCalledTimes(1);
-    expect(DependencyOne.fn).toHaveBeenCalledWith('one');
+    expect(DependencyOne.fn).toHaveBeenCalledTimes(1)
+    expect(DependencyOne.fn).toHaveBeenCalledWith('one')
 
-    expect(DependencyTwo.fn).toHaveBeenCalledTimes(1);
-    expect(DependencyTwo.fn).toHaveBeenCalledWith('two');
-  });
+    expect(DependencyTwo.fn).toHaveBeenCalledTimes(1)
+    expect(DependencyTwo.fn).toHaveBeenCalledWith('two')
+  })
 
   it('Dependencies should be automatically injected when calling createContext', () => {
-    const fn = jest.fn();
+    const fn = jest.fn()
 
     class Dependency {
-      public fn = fn;
+      public fn = fn
     }
 
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
     const context = createContext({
-      provide: [
-        new Application(),
-      ],
-    });
+      provide: [new Application()],
+    })
 
-    const app = context.get<Application>(Application);
+    const app = context.get<Application>(Application)
 
-    app!.dependency.fn();
+    app!.dependency.fn()
 
-    expect(fn).toHaveBeenCalled();
-  });
+    expect(fn).toHaveBeenCalled()
+  })
 
   it('Should allow multiple contexts to exist', () => {
     abstract class Dependency {
-      public abstract fn(context: 'one' | 'two'): void;
+      public abstract fn(context: 'one' | 'two'): void
     }
 
     class DependencyOne extends Dependency {
-      static fn = jest.fn();
-      public fn = DependencyOne.fn;
+      static fn = jest.fn()
+      public fn = DependencyOne.fn
     }
 
     class DependencyTwo extends Dependency {
-      static fn = jest.fn();
-      public fn = DependencyTwo.fn;
+      static fn = jest.fn()
+      public fn = DependencyTwo.fn
     }
 
     class Application {
       @Inject()
-      public dependency!: Dependency;
+      public dependency!: Dependency
     }
 
     const contextOne = createContext({
-      provide: [
-        [Dependency, new DependencyOne()],
-        new Application(),
-      ],
-    });
+      provide: [[Dependency, new DependencyOne()], new Application()],
+    })
 
     const contextTwo = createContext({
-      provide: [
-        [Dependency, new DependencyTwo()],
-        new Application(),
-      ],
-    });
+      provide: [[Dependency, new DependencyTwo()], new Application()],
+    })
 
-    const appOne = contextOne.get<Application>(Application);
-    const appTwo = contextTwo.get<Application>(Application);
+    const appOne = contextOne.get<Application>(Application)
+    const appTwo = contextTwo.get<Application>(Application)
 
-    appOne!.dependency.fn('one');
-    appTwo!.dependency.fn('two');
+    appOne!.dependency.fn('one')
+    appTwo!.dependency.fn('two')
 
-    expect(DependencyOne.fn).toHaveBeenCalledTimes(1);
-    expect(DependencyOne.fn).toHaveBeenCalledWith('one');
+    expect(DependencyOne.fn).toHaveBeenCalledTimes(1)
+    expect(DependencyOne.fn).toHaveBeenCalledWith('one')
 
-    expect(DependencyTwo.fn).toHaveBeenCalledTimes(1);
-    expect(DependencyTwo.fn).toHaveBeenCalledWith('two');
-  });
+    expect(DependencyTwo.fn).toHaveBeenCalledTimes(1)
+    expect(DependencyTwo.fn).toHaveBeenCalledWith('two')
+  })
 
   it('Should allow providing arbitrary instance types', () => {
     @Context({
-      provide: [
-        ['key', 'value']
-      ]
+      provide: [['key', 'value']],
     })
     class Application {
       @Inject('key')
-      key!: string;
+      key!: string
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.key).toBe('value');
-  });
+    expect(app.key).toBe('value')
+  })
 
   it('Should allow context injection', () => {
     @Context({
-      provide: [
-        ['key', 'value']
-      ]
+      provide: [['key', 'value']],
     })
     class Application {
       @Inject(Context)
-      context!: Context;
+      context!: Context
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    const key = app.context.get('key');
+    const key = app.context.get('key')
 
-    expect(key).toBe('value');
-  });
+    expect(key).toBe('value')
+  })
 
   it('Should bind the context to a manually instantiated instance', () => {
     class Dependency {
-      public key = 'value';
+      public key = 'value'
     }
 
     class RuntimeDependency {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
     }
 
     @Context()
     class Application {
       @Inject(Context)
-      context!: Context;
+      context!: Context
 
       public getRuntimeDependency() {
-        const runtimeDependency = new RuntimeDependency();
+        const runtimeDependency = new RuntimeDependency()
 
-        this.context.bind(runtimeDependency);
+        this.context.bind(runtimeDependency)
 
-        return runtimeDependency;
+        return runtimeDependency
       }
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    const runtimeDependency = app.getRuntimeDependency();
+    const runtimeDependency = app.getRuntimeDependency()
 
-    expect(runtimeDependency.dependency.key).toBe('value');
-  });
+    expect(runtimeDependency.dependency.key).toBe('value')
+  })
 
   it('Should instantiate a type at runtime', () => {
     class Dependency {
-      public key = 'value';
+      public key = 'value'
     }
 
     class RuntimeDependency {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
     }
 
     @Context()
     class Application {
       @Inject(Context)
-      context!: Context;
+      context!: Context
 
       public getRuntimeDependency() {
-        return this.context.instantiate(RuntimeDependency);
+        return this.context.instantiate(RuntimeDependency)
       }
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    const runtimeDependency = app.getRuntimeDependency();
+    const runtimeDependency = app.getRuntimeDependency()
 
-    expect(runtimeDependency.dependency.key).toBe('value');
-  });
+    expect(runtimeDependency.dependency.key).toBe('value')
+  })
 
   it('Should dedupe a runtime instantiated type', () => {
     class RuntimeDependency {}
@@ -620,308 +608,308 @@ describe('index', () => {
     @Context()
     class Application {
       @Inject(Context)
-      context!: Context;
+      context!: Context
 
       public getRuntimeDependency() {
-        return this.context.instantiate(RuntimeDependency);
+        return this.context.instantiate(RuntimeDependency)
       }
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    const runtimeDependencyOne = app.getRuntimeDependency();
-    const runtimeDependencyTwo = app.getRuntimeDependency();
+    const runtimeDependencyOne = app.getRuntimeDependency()
+    const runtimeDependencyTwo = app.getRuntimeDependency()
 
-    expect(runtimeDependencyOne).toBeInstanceOf(RuntimeDependency);
-    expect(runtimeDependencyTwo).toBeInstanceOf(RuntimeDependency);
-    expect(runtimeDependencyOne).toBe(runtimeDependencyTwo);
-  });
+    expect(runtimeDependencyOne).toBeInstanceOf(RuntimeDependency)
+    expect(runtimeDependencyTwo).toBeInstanceOf(RuntimeDependency)
+    expect(runtimeDependencyOne).toBe(runtimeDependencyTwo)
+  })
 
   it('Should get the context from an instance', () => {
-    const context = createContext();
+    const context = createContext()
 
     class Application {}
 
-    const app = context.instantiate(Application);
-    const appContext = getContext(app);
+    const app = context.instantiate(Application)
+    const appContext = getContext(app)
 
-    expect(appContext).toBe(context);
-  });
+    expect(appContext).toBe(context)
+  })
 
   it('Should get the context from an this', () => {
-    const context = createContext();
+    const context = createContext()
 
     class Application {
       public getContext() {
-        return getContext(this);
+        return getContext(this)
       }
     }
 
-    const app = context.instantiate(Application);
-    const appContext = app.getContext();
+    const app = context.instantiate(Application)
+    const appContext = app.getContext()
 
-    expect(appContext).toBe(context);
-  });
+    expect(appContext).toBe(context)
+  })
 
   it('Should allow using injected properties in the constructor', () => {
     class Dependency {}
 
     @Context()
     class Application {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
 
       constructor() {
-        expect(this.dependency).toBeInstanceOf(Dependency);
+        expect(this.dependency).toBeInstanceOf(Dependency)
       }
     }
 
-    new Application();
-  });
+    new Application()
+  })
 
   it('Dependencies should be able to access properties in the constructor', () => {
     class NestedDependency {}
 
     class Dependency {
-      @Inject() dependency!: NestedDependency;
+      @Inject() dependency!: NestedDependency
 
       constructor() {
-        expect(this.dependency).toBeInstanceOf(NestedDependency);
+        expect(this.dependency).toBeInstanceOf(NestedDependency)
       }
     }
 
     @Context()
     class Application {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
 
       constructor() {
-        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency);
+        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency)
       }
     }
 
-    new Application();
-  });
+    new Application()
+  })
 
   it('Dependencies provided globally with the provide funtion should be able to access properties in the constructor', () => {
     class NestedDependency {}
 
     class Dependency {
-      @Inject() dependency!: NestedDependency;
+      @Inject() dependency!: NestedDependency
 
       constructor() {
-        expect(this.dependency).toBeInstanceOf(NestedDependency);
+        expect(this.dependency).toBeInstanceOf(NestedDependency)
       }
     }
     provide('Dependency', Dependency)
 
     @Context()
     class Application {
-      @Inject('Dependency') dependency: any;
+      @Inject('Dependency') dependency: any
 
       constructor() {
-        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency);
+        expect(this.dependency.dependency).toBeInstanceOf(NestedDependency)
       }
     }
 
-    new Application();
-  });
+    new Application()
+  })
 
   it('Should have access to nested contexts using the Inject decorator in nested context', () => {
     class DependencyOne {}
 
-    const dependencyOne = new DependencyOne();
+    const dependencyOne = new DependencyOne()
 
     class DependencyTwo {}
 
-    const dependencyTwo = new DependencyTwo();
+    const dependencyTwo = new DependencyTwo()
 
     @Context({
-      provide: [dependencyTwo]
+      provide: [dependencyTwo],
     })
     class Application {
-      @Inject() dependencyOne!: DependencyOne;
-      @Inject() dependencyTwo!: DependencyTwo;
+      @Inject() dependencyOne!: DependencyOne
+      @Inject() dependencyTwo!: DependencyTwo
     }
 
     @Context({
-      provide: [dependencyOne]
+      provide: [dependencyOne],
     })
     class Root {
-      @Inject() application!: Application;
+      @Inject() application!: Application
     }
 
-    const root = new Root();
+    const root = new Root()
 
-    expect(root.application.dependencyOne).toBe(dependencyOne);
-    expect(root.application.dependencyTwo).toBe(dependencyTwo);
-  });
+    expect(root.application.dependencyOne).toBe(dependencyOne)
+    expect(root.application.dependencyTwo).toBe(dependencyTwo)
+  })
 
   it('Should have access to nested contexts using the Inject decorator in dependency', () => {
     class DependencyOne {}
 
-    const dependencyOne = new DependencyOne();
+    const dependencyOne = new DependencyOne()
 
     class DependencyTwo {}
 
-    const dependencyTwo = new DependencyTwo();
+    const dependencyTwo = new DependencyTwo()
 
     class Service {
-      @Inject() dependencyOne!: DependencyOne;
-      @Inject() dependencyTwo!: DependencyTwo;
+      @Inject() dependencyOne!: DependencyOne
+      @Inject() dependencyTwo!: DependencyTwo
     }
 
     @Context({
-      provide: [dependencyTwo]
+      provide: [dependencyTwo],
     })
     class Application {
-      @Inject() service!: Service;
+      @Inject() service!: Service
     }
 
     @Context({
-      provide: [dependencyOne]
+      provide: [dependencyOne],
     })
     class Root {
-      @Inject() application!: Application;
+      @Inject() application!: Application
     }
 
-    const root = new Root();
+    const root = new Root()
 
-    expect(root.application.service.dependencyOne).toBe(dependencyOne);
-    expect(root.application.service.dependencyTwo).toBe(dependencyTwo);
-  });
+    expect(root.application.service.dependencyOne).toBe(dependencyOne)
+    expect(root.application.service.dependencyTwo).toBe(dependencyTwo)
+  })
 
   it('Should have access to nested contexts when extending a class decorated with Context', () => {
     class DependencyOne {}
 
-    const dependencyOne = new DependencyOne();
+    const dependencyOne = new DependencyOne()
 
     class DependencyTwo {}
 
-    const dependencyTwo = new DependencyTwo();
+    const dependencyTwo = new DependencyTwo()
 
     @Context({
-      provide: [dependencyTwo]
+      provide: [dependencyTwo],
     })
     class BaseApplication {}
 
     @Context({
-      provide: [dependencyOne]
+      provide: [dependencyOne],
     })
     class Application extends BaseApplication {
-      @Inject() dependencyOne!: DependencyOne;
-      @Inject() dependencyTwo!: DependencyTwo;
+      @Inject() dependencyOne!: DependencyOne
+      @Inject() dependencyTwo!: DependencyTwo
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependencyOne).toBe(dependencyOne);
-    expect(app.dependencyTwo).toBe(dependencyTwo);
-  });
+    expect(app.dependencyOne).toBe(dependencyOne)
+    expect(app.dependencyTwo).toBe(dependencyTwo)
+  })
 
   it('Should be able to decorate a class with multiple contexts', () => {
     class DependencyOne {}
 
-    const dependencyOne = new DependencyOne();
+    const dependencyOne = new DependencyOne()
 
     class DependencyTwo {}
 
-    const dependencyTwo = new DependencyTwo();
+    const dependencyTwo = new DependencyTwo()
 
     @Context({
-      provide: [dependencyTwo]
+      provide: [dependencyTwo],
     })
     @Context({
-      provide: [dependencyOne]
+      provide: [dependencyOne],
     })
     class Application {
-      @Inject() dependencyOne!: DependencyOne;
-      @Inject() dependencyTwo!: DependencyTwo;
+      @Inject() dependencyOne!: DependencyOne
+      @Inject() dependencyTwo!: DependencyTwo
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependencyOne).toBe(dependencyOne);
-    expect(app.dependencyTwo).toBe(dependencyTwo);
-  });
+    expect(app.dependencyOne).toBe(dependencyOne)
+    expect(app.dependencyTwo).toBe(dependencyTwo)
+  })
 
   it('Should log an appropriate error when setting a type on a context but no context partials are bound to the context', () => {
-    const context = createContext();
+    const context = createContext()
 
     Object.defineProperty(context, 'contextPartials', {
-      value: []
-    });
+      value: [],
+    })
 
-    expect(() => context.set('test', 'test')).toThrowErrorMatchingSnapshot();
-  });
+    expect(() => context.set('test', 'test')).toThrowErrorMatchingSnapshot()
+  })
 
   it('Should create an implicit context', () => {
     class Dependency {}
 
     class Application {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependency).toBeInstanceOf(Dependency);
-  });
+    expect(app.dependency).toBeInstanceOf(Dependency)
+  })
 
   it('Should not create an implicit context when a context can be inherited', () => {
     class NestedDependency {}
 
     class Dependency {
-      @Inject() dependency!: NestedDependency;
+      @Inject() dependency!: NestedDependency
     }
 
     class Application {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
     }
 
-    const app = new Application();
+    const app = new Application()
 
     // Access the dependency to trigger the context to be created
-    app.dependency.dependency;
+    app.dependency.dependency
 
-    expect(getContext(app)).toBe(getContext(app.dependency));
-  });
+    expect(getContext(app)).toBe(getContext(app.dependency))
+  })
 
   it('Should be possible to inject an implicit context', () => {
     class Application {
-      @Inject(Context) context: any;
+      @Inject(Context) context: any
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(isContext(app.context)).toBe(true);
-  });
+    expect(isContext(app.context)).toBe(true)
+  })
 
   it('Should be possible for an implicit context to be extended by a nested context', () => {
     class Dependency {}
 
     @Context()
     class NestedContext {
-      @Inject() dependency!: Dependency;
+      @Inject() dependency!: Dependency
     }
 
     class Application {
-      @Inject() dependency!: Dependency;
-      @Inject() nestedContext!: NestedContext;
+      @Inject() dependency!: Dependency
+      @Inject() nestedContext!: NestedContext
     }
 
-    const app = new Application();
+    const app = new Application()
 
-    expect(app.dependency).toBeInstanceOf(Dependency);
-    expect(app.nestedContext.dependency).toBeInstanceOf(Dependency);
-    
-    expect(app.nestedContext.dependency).toBe(app.dependency);
-  });
+    expect(app.dependency).toBeInstanceOf(Dependency)
+    expect(app.nestedContext.dependency).toBeInstanceOf(Dependency)
+
+    expect(app.nestedContext.dependency).toBe(app.dependency)
+  })
 
   it('Should return true when isContext is called with a context', () => {
-    const context = createContext();
+    const context = createContext()
 
-    expect(isContext(context)).toBe(true);
-  });
+    expect(isContext(context)).toBe(true)
+  })
 
   it('Should return false when isContext is called with a non context', () => {
-    expect(isContext({})).toBe(false);
-  });
-});
+    expect(isContext({})).toBe(false)
+  })
+})
